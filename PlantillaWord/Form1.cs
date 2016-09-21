@@ -21,7 +21,7 @@ namespace PlantillaWord
             builder.Server = "192.168.1.35";
             builder.UserID = "root";
             builder.Password = "admin";
-            builder.Database = "appbosa";
+            builder.Database = "empafrut";
         }
 
         private void btnimprimir_Click(object sender, EventArgs e)
@@ -103,9 +103,47 @@ namespace PlantillaWord
             try
             {
                 string directorio = Application.StartupPath + "\\WordDocs\\";
-                string[] allWordDocuments = Directory.GetFiles(directorio, "*.doc", SearchOption.TopDirectoryOnly);
                 string outputPath = @directorio + "\\ArchivoUnificado.doc";
-                WordMerge.Merge(allWordDocuments, outputPath, true, directorio + "\\Template.dot");
+                string template = directorio + "\\Template.dot";
+                string temp1 = directorio + "\\Temp1.doc";
+                if (File.Exists(outputPath))
+                {
+                    File.Delete(outputPath);
+                }
+                if (!File.Exists(temp1))
+                {
+                    File.Create(temp1).Close();
+                }
+
+                MySqlConnection conn = new MySqlConnection(builder.ToString());
+                conn.Open();
+                MySqlDataReader rdr;
+                using (var cmd = new MySqlCommand("SELECT contrato FROM perlab Limit 1,7", conn))
+                {
+                    rdr = cmd.ExecuteReader();
+                    while (rdr.Read())
+                    {
+                        if ( rdr[0] != DBNull.Value )
+                        {
+                            Byte[] data = (Byte[])rdr[0];
+                            FileStream fs = File.Open(temp1, FileMode.Open, FileAccess.ReadWrite, FileShare.ReadWrite);
+                            fs.Write(data, 0, data.Length);
+                            fs.Close();
+                            if (!File.Exists(outputPath))
+                            {
+                                File.Copy(temp1, outputPath);
+                            }
+                            else
+                            {
+                                WordMerge.Merge(new string[] {temp1, outputPath }, outputPath, true, template);
+                            }
+                            Console.Write("ad");
+                        }
+                    }
+                }
+                conn.Close();
+                File.Delete(temp1);
+                MessageBox.Show("Listo");
             }
             catch (Exception ex)
             {
